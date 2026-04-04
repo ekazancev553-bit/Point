@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/surface">
+
+    <!-- Score bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/primary"
+        android:padding="@dimen/margin_small">
+
+        <!-- Player 1 score -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@color/score_bg_p1"
+            android:padding="@dimen/margin_small">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/player_1"
+                android:textColor="#FFFF8A80"
+                android:textSize="@dimen/label_text_size"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvScore1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/white"
+                android:textSize="@dimen/score_text_size"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Turn indicator -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="@dimen/margin_small">
+
+            <TextView
+                android:id="@+id/tvTurn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ход"
+                android:textColor="@color/white"
+                android:textSize="12sp" />
+
+            <View
+                android:id="@+id/turnIndicator"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/dot_indicator" />
+        </LinearLayout>
+
+        <!-- Player 2 score -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@color/score_bg_p2"
+            android:padding="@dimen/margin_small">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/player_2"
+                android:textColor="#FF82B1FF"
+                android:textSize="@dimen/label_text_size"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvScore2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textColor="@color/white"
+                android:textSize="@dimen/score_text_size"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Game board -->
+    <com.pointgame.classic.GameView
+        android:id="@+id/gameView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Bottom controls -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="@dimen/margin_medium"
+        android:background="@color/primary">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNewGame"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/new_game"
+            android:textColor="@color/primary"
+            app:backgroundTint="@color/white"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            app:cornerRadius="@dimen/button_radius"
+            android:layout_marginEnd="@dimen/margin_medium" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/back"
+            android:textColor="@color/white"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            app:strokeColor="@color/white"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            app:cornerRadius="@dimen/button_radius" />
+    </LinearLayout>
+
+</LinearLayout>

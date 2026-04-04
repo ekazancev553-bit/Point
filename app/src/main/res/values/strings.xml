@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">Point</string>
+    <string name="game_title">Точки</string>
+    <string name="play">Играть</string>
+    <string name="new_game">Новая игра</string>
+    <string name="back">Назад</string>
+    <string name="player_1">Игрок 1</string>
+    <string name="player_2">Игрок 2</string>
+    <string name="score">Счёт</string>
+    <string name="game_over">Игра окончена!</string>
+    <string name="winner_player1">Победил Игрок 1!</string>
+    <string name="winner_player2">Победил Игрок 2!</string>
+    <string name="draw">Ничья!</string>
+    <string name="captured">захвачено</string>
+    <string name="how_to_play">Как играть</string>
+    <string name="rules_text">Два игрока по очереди ставят точки на сетке.\n\nЦель — окружить точки соперника своими точками.\n\nОкружённые точки захватываются и засчитываются победителю.\n\nПобеждает тот, кто захватит больше точек!</string>
+    <string name="ok">OK</string>
+    <string name="turn_player1">Ход Игрока 1 (Красный)</string>
+    <string name="turn_player2">Ход Игрока 2 (Синий)</string>
+</resources>
