@@ -5,6 +5,8 @@ import { EventBus } from '../../utils/EventBus';
 import { BoardRenderer } from '../components/BoardRenderer';
 import { ScoreBar } from '../components/ScoreBar';
 import { Toolbar } from '../components/Toolbar';
+import { SoundManager } from '../../audio/SoundManager';
+import { HapticManager } from '../../audio/HapticManager';
 import { theme } from '../theme';
 import { Screen } from '../Router';
 
@@ -13,6 +15,8 @@ export class GameScreen implements Screen {
   private canvas: HTMLCanvasElement | null = null;
   private renderer: BoardRenderer | null = null;
   private scoreBar: ScoreBar | null = null;
+  private sound = new SoundManager();
+  private haptic = new HapticManager();
   private toolbar: Toolbar | null = null;
   private controller: GameController | null = null;
   private eventBus: EventBus | null = null;
@@ -174,10 +178,26 @@ export class GameScreen implements Screen {
       this.renderBoard();
       this.updateToolbar();
 
+      // Sound and haptic feedback
+      if (result.captures && result.captures.length > 0) {
+        this.sound.play('capture');
+        this.haptic.vibrate('medium');
+      } else {
+        this.sound.play('place');
+        this.haptic.vibrate('light');
+      }
+
+      if (result.gameOver) {
+        this.sound.play('gameOver');
+        this.haptic.vibrate('heavy');
+      }
+
       // Trigger AI move
       if (!result.gameOver && this.config?.gameMode === 'pve' && this.ai) {
         setTimeout(() => this.doAiMove(), 400);
       }
+    } else {
+      this.haptic.vibrate('error');
     }
   }
 
@@ -199,6 +219,11 @@ export class GameScreen implements Screen {
         this.lastMove = move;
         this.renderBoard();
         this.updateToolbar();
+        if (result.captures && result.captures.length > 0) {
+          this.sound.play('capture');
+        } else {
+          this.sound.play('place');
+        }
       }
     });
   }
@@ -214,6 +239,7 @@ export class GameScreen implements Screen {
       this.controller.undo();
     }
 
+    this.sound.play('undo');
     const moves = this.controller.getMoveHistory();
     this.lastMove = moves.length > 0 ? moves[moves.length - 1].point : undefined;
     this.renderBoard();
