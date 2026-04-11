@@ -1,16 +1,37 @@
-# Point — Classic Strategy Game
+# Point — Точки (Dots) Strategy Game
 
 ## Project Overview
 
-Point is a classic strategy game. The project is in the early development stage.
+Point is a classic strategy game "Точки" (Dots) built with TypeScript, HTML5 Canvas, and Vite. Target platform: Google Play Market via Capacitor.
+
+## Tech Stack
+
+- **Language**: TypeScript
+- **Build**: Vite
+- **Rendering**: HTML5 Canvas 2D
+- **Tests**: Vitest
+- **Android**: Capacitor 6
+- **Online**: Socket.IO (planned)
+
+## Architecture
+
+```
+src/
+  engine/    — Pure game logic (Board, CaptureDetector, GameController, History)
+  ai/        — AI opponents (Easy, Medium, Hard with minimax)
+  ui/        — Canvas renderer, screens, components
+  online/    — WebSocket client (planned)
+  audio/     — Sound and haptics (planned)
+  storage/   — LocalStorage persistence (planned)
+  utils/     — EventBus, InputHandler
+```
 
 ## Development Agents
-
-This project includes specialized development agents available as slash commands:
 
 | Command | Agent | Role |
 |---------|-------|------|
 | `/architect` | Architect | System design, tech stack, project structure |
+| `/designer` | Designer | UI/UX design, visual design, branding |
 | `/frontend` | Frontend Developer | UI components, rendering, user interaction |
 | `/backend` | Backend Developer | Game logic, APIs, data persistence |
 | `/gamedev` | Game Developer | Game mechanics, AI opponent, game loop |
@@ -19,18 +40,18 @@ This project includes specialized development agents available as slash commands
 | `/devops` | DevOps | CI/CD, Docker, build configuration |
 | `/documenter` | Documentation | API docs, guides, architecture docs |
 
-## Usage
+## Commands
 
-Run any agent by typing its slash command in Claude Code:
-```
-/architect — to design the system architecture
-/gamedev — to implement game mechanics
-/tester — to write tests for existing code
+```bash
+npm run dev        # Start dev server
+npm run build      # Production build
+npm run test       # Run tests
+npm run lint       # Lint code
 ```
 
 ## Project Conventions
 
-- Keep game logic separate from rendering
+- Keep game logic separate from rendering (`engine/` has NO DOM dependencies)
 - Write tests for all game rules
 - Validate inputs at system boundaries
 - Use meaningful commit messages

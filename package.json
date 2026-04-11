@@ -1,0 +1,24 @@
+{
+  "name": "point-game",
+  "version": "1.0.0",
+  "description": "Точки — классическая стратегическая игра",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/ tests/",
+    "format": "prettier --write src/ tests/"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.4.0"
+  }
+}
