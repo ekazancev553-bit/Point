@@ -4,8 +4,12 @@ import { MenuScreen } from './ui/screens/MenuScreen';
 import { SettingsScreen } from './ui/screens/SettingsScreen';
 import { GameScreen } from './ui/screens/GameScreen';
 import { GameOverScreen } from './ui/screens/GameOverScreen';
+import { LobbyScreen } from './ui/screens/LobbyScreen';
 import { DEFAULT_BOARD_WIDTH, DEFAULT_BOARD_HEIGHT } from './constants';
 import { PLAYER_1_COLOR, PLAYER_2_COLOR } from './constants';
+import { EventBus } from './utils/EventBus';
+import { OnlineClient } from './online/OnlineClient';
+import { OnlineGameAdapter } from './online/OnlineGameAdapter';
 
 const app = document.getElementById('app')!;
 const router = new Router(app);
@@ -39,7 +43,7 @@ function showMenu(): void {
     startGame(currentConfig);
   };
   menu.onOnline = () => {
-    // TODO: Online mode
+    showOnlineLobby();
   };
   menu.onSettings = () => showSettings();
   router.showScreen(menu);
@@ -48,6 +52,63 @@ function showMenu(): void {
 function showSettings(): void {
   settingsScreen.onBack = () => showMenu();
   router.showScreen(settingsScreen);
+}
+
+function showOnlineLobby(): void {
+  const lobby = new LobbyScreen();
+  lobby.onMenu = () => showMenu();
+  lobby.onGameStart = async (config: GameConfig, playerName: string, serverUrl: string) => {
+    try {
+      const eventBus = new EventBus();
+      const onlineClient = new OnlineClient();
+
+      // Connect to server
+      await onlineClient.connect(serverUrl, playerName, config.boardWidth, config.boardHeight);
+
+      // Wait for game to start
+      await new Promise<void>((resolve) => {
+        onlineClient.on('game:start', () => {
+          resolve();
+        });
+      });
+
+      // Create online game adapter
+      const adapter = new OnlineGameAdapter(onlineClient, eventBus, config);
+
+      // Show game screen
+      const gameScreen = new GameScreen();
+      gameScreen.onMenu = () => {
+        adapter.disconnect();
+        showMenu();
+      };
+
+      // Use adapter as controller in game screen
+      (gameScreen as any).controller = adapter;
+      (gameScreen as any).eventBus = eventBus;
+      (gameScreen as any).config = config;
+
+      gameScreen.onGameOver = (winner: Player | null) => {
+        adapter.disconnect();
+        const score: Score = adapter.getScore();
+        showGameOver(winner, score, config);
+      };
+
+      router.showScreen(gameScreen);
+
+      // Mount game screen
+      requestAnimationFrame(() => {
+        if ((gameScreen as any).canvas) {
+          (gameScreen as any).renderBoard();
+          (gameScreen as any).setupInput();
+        }
+      });
+    } catch (error) {
+      console.error('Failed to connect to online game:', error);
+      alert('Ошибка подключения: ' + (error as Error).message);
+      showMenu();
+    }
+  };
+  router.showScreen(lobby);
 }
 
 function startGame(config: GameConfig): void {

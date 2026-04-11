@@ -54,9 +54,7 @@ export class MenuScreen implements Screen {
 
     const aiBtn = this.createButton('Игра с ИИ', theme.player1, () => this.onNewGameAI());
     const pvpBtn = this.createButton('Два игрока', theme.player2, () => this.onNewGamePvP());
-    const onlineBtn = this.createButton('Онлайн', theme.textMuted, () => this.onOnline());
-    onlineBtn.style.opacity = '0.5';
-    onlineBtn.style.cursor = 'default';
+    const onlineBtn = this.createButton('Онлайн', '#9f7aea', () => this.onOnline());
     const settingsBtn = this.createButton('Настройки', theme.textSecondary, () => this.onSettings());
 
     btnContainer.appendChild(aiBtn);
