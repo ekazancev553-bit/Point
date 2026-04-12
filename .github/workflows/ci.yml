@@ -46,7 +46,28 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build AAB
+      - name: Setup keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 -d > android/app/point-release.jks
+
+      - name: Build AAB (signed)
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        working-directory: android
+        env:
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=$GITHUB_WORKSPACE/android/app/point-release.jks \
+            -Pandroid.injected.signing.store.password=$KEY_STORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+
+      - name: Build AAB (unsigned, no keystore)
+        if: ${{ secrets.KEYSTORE_BASE64 == '' }}
         working-directory: android
         run: ./gradlew bundleRelease
 
