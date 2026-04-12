@@ -21,3 +21,55 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run test
       - run: npm run build
+
+  build-android:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build release AAB
+        run: ./gradlew bundleRelease
+        working-directory: android
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 -d > point-release.jks
+
+      - name: Sign AAB with jarsigner
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          jarsigner \
+            -verbose \
+            -sigalg SHA256withRSA \
+            -digestalg SHA-256 \
+            -keystore point-release.jks \
+            -storepass "$KEYSTORE_PASSWORD" \
+            -keypass "$KEYSTORE_PASSWORD" \
+            android/app/build/outputs/bundle/release/app-release.aab \
+            point-key
+
+      - name: Upload signed AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: point-release-signed
+          path: android/app/build/outputs/bundle/release/app-release.aab
