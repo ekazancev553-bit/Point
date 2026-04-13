@@ -1,0 +1,6 @@
+First release of the classic two-player Dots strategy game.
+
+• 15×15 game grid
+• Dot capture via flood-fill algorithm
+• Real-time score tracking
+• No ads, no internet required

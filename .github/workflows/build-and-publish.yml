@@ -1,0 +1,160 @@
+name: Build & Publish to Google Play
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'          # Запускается при пуше тега вида v1.0.0
+  workflow_dispatch:       # Ручной запуск из GitHub Actions UI
+    inputs:
+      track:
+        description: 'Play Store track'
+        required: true
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+
+# ── Переменные окружения ─────────────────────────────────────────────────────
+env:
+  JAVA_VERSION: '21'
+  ANDROID_API_LEVEL: '34'
+  BUILD_TOOLS_VERSION: '34.0.0'
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 1: Тесты (запускается всегда)
+  # ────────────────────────────────────────────────────────────────────────────
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: gradle
+
+      - name: Run unit tests
+        run: ./gradlew test --no-daemon
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: app/build/reports/tests/
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # JOB 2: Сборка и публикация AAB
+  # ────────────────────────────────────────────────────────────────────────────
+  build-and-publish:
+    name: Build AAB & Publish
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      # 1. Чекаут кода
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # нужно для подсчёта коммитов (versionCode)
+
+      # 2. JDK
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: gradle
+
+      # 3. Декодировать keystore из секрета Base64
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > point-release.jks
+          echo "Keystore decoded: $(ls -lh point-release.jks | awk '{print $5}')"
+
+      # 4. Создать keystore.properties
+      - name: Create keystore.properties
+        run: |
+          cat > keystore.properties << EOF
+          storeFile=../point-release.jks
+          storePassword=${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          keyAlias=${{ secrets.KEYSTORE_KEY_ALIAS }}
+          keyPassword=${{ secrets.KEYSTORE_KEY_PASSWORD }}
+          EOF
+
+      # 5. Вычислить versionCode из количества коммитов
+      - name: Compute versionCode
+        id: version
+        run: |
+          VERSION_CODE=$(git rev-list --count HEAD)
+          VERSION_NAME="${GITHUB_REF_NAME:-1.0.0}"
+          VERSION_NAME="${VERSION_NAME#v}"   # убираем префикс v
+          echo "code=$VERSION_CODE"   >> $GITHUB_OUTPUT
+          echo "name=$VERSION_NAME"   >> $GITHUB_OUTPUT
+          echo "VersionCode=$VERSION_CODE, VersionName=$VERSION_NAME"
+
+      # 6. Обновить versionCode/versionName в build.gradle
+      - name: Update version in build.gradle
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${{ steps.version.outputs.code }}/" app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"${{ steps.version.outputs.name }}\"/" app/build.gradle
+
+      # 7. Собрать подписанный AAB
+      - name: Build release AAB
+        run: ./gradlew bundleRelease --no-daemon
+
+      # 8. Проверить подпись
+      - name: Verify AAB signature
+        run: |
+          jarsigner -verify -verbose -certs \
+            app/build/outputs/bundle/release/app-release.aab
+
+      # 9. Сохранить AAB как артефакт
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ steps.version.outputs.name }}
+          path: app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      # 10. Определить track (тег → production, ручной запуск → выбранный трек)
+      - name: Determine publish track
+        id: track
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "track=${{ github.event.inputs.track }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/v*.*.* ]]; then
+            echo "track=production" >> $GITHUB_OUTPUT
+          else
+            echo "track=internal" >> $GITHUB_OUTPUT
+          fi
+
+      # 11. Опубликовать в Google Play
+      - name: Publish to Google Play (${{ steps.track.outputs.track }})
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.pointgame.classic
+          releaseFiles: app/build/outputs/bundle/release/app-release.aab
+          track: ${{ steps.track.outputs.track }}
+          status: completed
+          releaseName: ${{ steps.version.outputs.name }}
+          changesNotSentForReview: false
+          whatsNewDirectory: store_assets/whatsnew/
+
+      # 12. Создать GitHub Release при пуше тега
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/bundle/release/app-release.aab
+          generate_release_notes: true
+          name: "Point ${{ steps.version.outputs.name }}"
