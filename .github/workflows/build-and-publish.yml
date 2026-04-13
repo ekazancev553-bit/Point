@@ -78,19 +78,26 @@ jobs:
 
       # 3. Декодировать keystore из секрета Base64
       - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > point-release.jks
-          echo "Keystore decoded: $(ls -lh point-release.jks | awk '{print $5}')"
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "ERROR: KEYSTORE_BASE64 secret is not set or empty"
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > point-release.jks
+          echo "Keystore decoded: $(stat -c%s point-release.jks) bytes"
 
       # 4. Создать keystore.properties
       - name: Create keystore.properties
+        env:
+          STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
         run: |
-          cat > keystore.properties << EOF
-          storeFile=../point-release.jks
-          storePassword=${{ secrets.KEYSTORE_STORE_PASSWORD }}
-          keyAlias=${{ secrets.KEYSTORE_KEY_ALIAS }}
-          keyPassword=${{ secrets.KEYSTORE_KEY_PASSWORD }}
-          EOF
+          printf 'storeFile=../point-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
+          echo "keystore.properties created"
 
       # 5. Вычислить versionCode из количества коммитов
       - name: Compute versionCode
