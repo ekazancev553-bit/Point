@@ -1,6 +1,23 @@
+# Web / Node
 node_modules/
 dist/
 *.local
+.env
+
+# Android native
+*.iml
+.gradle
+/local.properties
+/.idea
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+keystore.properties
+*.jks
+*.keystore
+
+# Common
 .DS_Store
 android/
-.env
