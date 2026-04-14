@@ -22,6 +22,7 @@ env:
   JAVA_VERSION: '21'
   ANDROID_API_LEVEL: '34'
   BUILD_TOOLS_VERSION: '34.0.0'
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
 jobs:
   # ────────────────────────────────────────────────────────────────────────────
@@ -76,7 +77,18 @@ jobs:
           distribution: temurin
           cache: gradle
 
-      # 3. Декодировать keystore из секрета Base64
+      # 3. Android SDK
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: |
+          sdkmanager --install \
+            "platforms;android-${{ env.ANDROID_API_LEVEL }}" \
+            "build-tools;${{ env.BUILD_TOOLS_VERSION }}" \
+            "platform-tools"
+
+      # 4. Декодировать keystore из секрета Base64
       - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -88,7 +100,7 @@ jobs:
           printf '%s' "$KEYSTORE_BASE64" | base64 -d > point-release.jks
           echo "Keystore decoded: $(stat -c%s point-release.jks) bytes"
 
-      # 4. Создать keystore.properties
+      # 5. Создать keystore.properties
       - name: Create keystore.properties
         env:
           STORE_PASSWORD: ${{ secrets.KEYSTORE_STORE_PASSWORD }}
@@ -99,7 +111,7 @@ jobs:
             "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
           echo "keystore.properties created"
 
-      # 5. Вычислить versionCode из количества коммитов
+      # 6. Вычислить versionCode из количества коммитов
       - name: Compute versionCode
         id: version
         run: |
@@ -114,23 +126,23 @@ jobs:
           echo "name=$VERSION_NAME"   >> $GITHUB_OUTPUT
           echo "VersionCode=$VERSION_CODE, VersionName=$VERSION_NAME"
 
-      # 6. Обновить versionCode/versionName в build.gradle
+      # 7. Обновить versionCode/versionName в build.gradle
       - name: Update version in build.gradle
         run: |
           # Используем | как разделитель sed (VERSION_NAME может содержать /)
           sed -i "s|versionCode [0-9]*|versionCode ${{ steps.version.outputs.code }}|" app/build.gradle
           sed -i "s|versionName \"[^\"]*\"|versionName \"${{ steps.version.outputs.name }}\"|" app/build.gradle
-      # 7. Собрать подписанный AAB
+      # 8. Собрать подписанный AAB
       - name: Build release AAB
         run: ./gradlew bundleRelease --no-daemon
 
-      # 8. Проверить подпись
+      # 9. Проверить подпись
       - name: Verify AAB signature
         run: |
           jarsigner -verify -verbose -certs \
             app/build/outputs/bundle/release/app-release.aab
 
-      # 9. Сохранить AAB как артефакт
+      # 10. Сохранить AAB как артефакт
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
@@ -138,7 +150,7 @@ jobs:
           path: app/build/outputs/bundle/release/app-release.aab
           retention-days: 30
 
-      # 10. Определить track (тег → production, ручной запуск → выбранный трек)
+      # 11. Определить track (тег → production, ручной запуск → выбранный трек)
       - name: Determine publish track
         id: track
         run: |
@@ -150,7 +162,7 @@ jobs:
             echo "track=internal" >> $GITHUB_OUTPUT
           fi
 
-      # 11. Опубликовать в Google Play
+      # 12. Опубликовать в Google Play
       - name: Publish to Google Play (${{ steps.track.outputs.track }})
         uses: r0adkll/upload-google-play@v1
         with:
@@ -163,7 +175,7 @@ jobs:
           changesNotSentForReview: false
           whatsNewDirectory: store_assets/whatsnew/
 
-      # 12. Создать GitHub Release при пуше тега
+      # 13. Создать GitHub Release при пуше тега
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
