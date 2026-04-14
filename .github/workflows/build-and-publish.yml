@@ -88,6 +88,11 @@ jobs:
             "build-tools;${{ env.BUILD_TOOLS_VERSION }}" \
             "platform-tools"
 
+      - name: Create local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "local.properties → sdk.dir=$ANDROID_HOME"
+
       # 4. Декодировать keystore из секрета Base64
       - name: Decode keystore
         env:
@@ -134,7 +139,7 @@ jobs:
           sed -i "s|versionName \"[^\"]*\"|versionName \"${{ steps.version.outputs.name }}\"|" app/build.gradle
       # 8. Собрать подписанный AAB
       - name: Build release AAB
-        run: ./gradlew bundleRelease --no-daemon
+        run: ./gradlew bundleRelease --no-daemon --stacktrace
 
       # 9. Проверить подпись
       - name: Verify AAB signature
